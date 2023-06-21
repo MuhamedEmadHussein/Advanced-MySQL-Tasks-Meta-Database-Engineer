@@ -1,0 +1,79 @@
+Query Task1 :
+
+- CREATE FUNCTION FindAverageCost(year INT) RETURNS DECIMAL(8,2) RETURN(SELECT AVG(Cost) FROM Orders WHERE YEAR(Date) = year);
+
+-SELECT FindAverageCost(2022);
+==================================================================================================================================
+Query Task2 :
+
+- DELIMITER //
+- CREATE PROCEDURE EvaluateProduct(IN ID VARCHAR(200),OUT sold_items_2020 INT, OUT sold_items_2021 INT,OUT sold_items_2022 INT) BEGIN SELECT SUM(Quantity) INTO sold_items_2020 FROM Orders WHERE ProductID = ID AND YEAR(Date) = 2020; SELECT SUM(Quantity) INTO sold_items_2021 FROM OrdersWHERE ProductID = ID AND YEAR(Date) = 2021; SELECT SUM(Quantity) INTO sold_items_2022 FROM Orders WHERE ProductID = ID AND YEAR(Date) = 2022; END//
+
+- DELIMITER ;
+- CALL EvaluateProduct("P1",@sold_items_2020,@sold_items_2021,@sold_items_2022);
+- SELECT @sold_items_2020,@sold_items_2021,@sold_items_2022;
+====================================================================================================================================
+Query Task3 :
+
+- CREATE TRIGGER UpdateAudit AFTER INSERT ON Orders FOR EACH ROW INSERT INTO Audit(OrderDateTime) VALUES(NOW());
+- INSERT INTO Orders (OrderID, ClientID, ProductID , Quantity, Cost, Date) VALUES    (31, "Cl1", "P1", 10, 500, "2022-09-01" );
+- SELECT * FROM Audit;
+====================================================================================================================================
+Query Task4 :
+
+-SELECT E.FullName,A.Street,A.County 
+FROM Employees AS E INNER JOIN Addresses AS A 
+ON E.AddressID = A.AddressID 
+UNION 
+SELECT C.FullName,A.Street,A.County 
+FROM Clients AS C INNER JOIN Addresses AS A
+ON C.AddressID = A.AddressID ORDER BY Street;
+====================================================================================================================================
+Query Task5 :
+
+-WITH Products_2020 AS (SELECT CONCAT (SUM(Cost), " (2020)") AS "Total sum of P2 Product" FROM Orders
+ WHERE YEAR (Date) = 2020 AND ProductID = "P2"),
+ Products_2021 AS (SELECT CONCAT (SUM(Cost), " (2021)") AS "Total sum of P2 Product" FROM Orders 
+ WHERE YEAR (Date) = 2021 AND ProductID= "P2"),
+ Products_2022 AS (SELECT CONCAT (SUM(Cost), " (2022)") AS "Total sum of P2 Product" FROM Orders
+ WHERE YEAR (Date) = 2022 AND ProductID = "P2")
+ SELECT * FROM Products_2020
+ UNION
+ SELECT * FROM Products_2021 
+ UNION 
+ SELECT * FROM Products_2022;
+====================================================================================================================================
+Query Task6 :
+
+-SELECT Activity.Properties ->> '$.ClientID' AS ClientID, Activity.Properties ->> '$.ProductID' AS ProductID,
+Clients.FullName,Clients.ContactNumber
+FROM Clients INNER JOIN 
+Activity ON Clients.ClientID = Activity.Properties ->> '$.ClientID';
+====================================================================================================================================
+Query Task7 :
+
+- DELIMITER //
+- CREATE PROCEDURE GetProfit(product_id VARCHAR(200),year INT) 
+  BEGIN
+  DECLARE profit DECIMAL(8,2) DEFAULT 0.0;
+  DECLARE sold_quantity,buy_price,sell_price INT DEFAULT 0;
+  SELECT SUM(Quantity)INTO sold_quantity FROM Orders WHERE ProductID = product_id AND YEAR(Date)= year;
+  SELECT BuyPrice INTO buy_price FROM Products WHERE ProductID = product_id;
+  SELECT SellPrice INTO sell_price FROM Products WHERE ProductID = product_id;
+  SET profit = (sell_price * sold_quantity) - (buy_price *sold_quantity);
+  SELECT profit;
+  END//
+- DELIMITER ;
+- CALL GetProfit("P1",2020);
+====================================================================================================================================
+Query Task8 :
+
+- CREATE VIEW DataSummary AS
+  SELECT Clients.FullName,Clients.ContactNumber,Addresses.County,Products.ProductName,Products.ProductID,Orders.Cost,Orders.Date
+  FROM Products
+  INNER JOIN Orders ON Products.ProductID = Orders.ProductID
+  INNER JOIN Clients ON Orders.ClientID = Clients.ClientID
+  INNER JOIN Addresses ON Clients.AddressID = Addresses.AddressID
+  WHERE YEAR(Orders.Date) = 2022
+  ORDER BY Orders.Cost;
+- SELECT * FROM DataSummary;
